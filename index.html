@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paws &amp; Positive Choices — Beach Quest</title>
+<style>
+:root{--ink:#153e48;--teal:#096e72}
+*{box-sizing:border-box}
+body{margin:0;background:#eaf6f3;color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+button{font:inherit;cursor:pointer;border:0}
+button:focus-visible,summary:focus-visible,canvas:focus-visible{outline:4px solid #bc470e;outline-offset:4px}
+button:disabled{cursor:default}
+main{max-width:1080px;margin:auto;padding:24px}
+header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:18px}
+.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:800;color:var(--teal)}
+h1{font-size:clamp(26px,4vw,40px);line-height:1.1;letter-spacing:-.04em;margin:5px 0 8px}
+header p{margin:0;color:#42656c}
+.badge{background:#fff2cf;border:1px solid #e0b759;border-radius:30px;padding:8px 16px;white-space:nowrap;font-size:13px;font-weight:800}
+.hud{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
+.stat{background:white;border:1px solid #cde2dc;border-radius:16px;padding:10px 16px}
+.stat small{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;color:#526c71}
+.stat strong{font-size:23px}
+.stage{position:relative;border:5px solid white;border-radius:24px;overflow:hidden;background:#62d2da;box-shadow:0 10px 30px #1c59551a}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+.stage-label{position:absolute;top:14px;left:16px;background:#ffffffec;border-radius:12px;padding:7px 12px;font-size:13px;font-weight:800;pointer-events:none}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 0}
+.toolbar p{margin:0;font-size:14px}
+.pill{background:white;border:1px solid #bfd9d2;border-radius:12px;padding:8px 16px;color:var(--ink);font-weight:700}
+.primary{background:var(--teal);color:white;border-radius:12px;padding:12px 22px;font-weight:800}
+.primary:hover{background:#05565c}
+.progress{display:flex;gap:8px}
+.dot{width:22px;height:8px;border-radius:4px;background:#c3dcd5}
+.dot.done{background:var(--teal)}
+.guide{background:#fffaf0;border-radius:18px;padding:16px 20px;font-size:14px;border:1px solid #e8dfc5}
+.guide p{margin:6px 0}
+.guide summary{cursor:pointer;font-weight:800}
+.touch{display:flex;justify-content:center;gap:8px;margin:12px}
+.touch button{width:48px;height:44px;touch-action:none;border-radius:12px;background:white;border:1px solid #aecdc4;color:var(--ink);font-size:22px}
+footer{font-size:12px;color:#526c71;margin:18px 0}
+dialog{border:0;border-radius:24px;padding:28px;max-width:660px;width:calc(100% - 32px);max-height:90dvh;overflow:auto;color:var(--ink);box-shadow:0 24px 90px #123e4c40;background:#fffdf7}
+dialog::backdrop{background:#123c4b88}
+dialog h2{font-size:26px;line-height:1.25;margin:10px 0 14px}
+dialog p{margin:10px 0}
+.choices{display:grid;gap:9px;margin:18px 0}
+.answer{text-align:left;display:flex;align-items:start;gap:12px;background:white;border:2px solid #d5e3dd;border-radius:12px;padding:12px;color:var(--ink);line-height:1.35}
+.answer:hover:not(:disabled){background:#eef8f4;border-color:#348c81}
+.letter{background:#eaf3ee;min-width:28px;text-align:center;border-radius:7px;font-weight:800;padding:2px}
+.answer.right{border-color:#23855d;background:#edf9ee}
+.answer.wrong{border-color:#bd6438;background:#fff1e7}
+.answer:disabled{opacity:1;color:var(--ink)}
+.feedback{background:#edf5ee;border-left:4px solid #23855d;padding:12px 16px;border-radius:8px;margin-bottom:16px}
+.feedback.retry{background:#fff1e7;border-color:#bd6438}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.rules{padding-left:22px}
+.results{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
+.results div{background:#edf5ee;border-radius:14px;padding:12px}
+.results strong{display:block;font-size:28px}
+.review-item{border-top:1px solid #d6e4dc;padding:12px 0;font-size:14px}
+.muted{color:#526c71;font-size:14px}
+[hidden]{display:none!important}
+@media(max-width:640px){
+ main{padding:14px}header{align-items:start}.badge{display:none}
+ .hud{gap:5px}.stat{padding:8px}.stat strong{font-size:18px}.stat small{font-size:9px}
+ .toolbar{align-items:start;flex-wrap:wrap}
+ .stage-label{font-size:10px;padding:4px 8px;top:8px;left:8px}
+ dialog{padding:22px}.dot{width:16px}
+}
+</style>
+</head>
+<body>
+<main>
+ <header>
+  <div>
+   <div class="eyebrow">Grade 6 · Healthy choices adventure</div>
+   <h1>Paws &amp; Positive Choices</h1>
+   <p>A little beach adventure. Skills for big decisions.</p>
+  </div>
+  <div class="badge">BEACH QUEST · 8 COVES</div>
+ </header>
+
+ <section class="hud" aria-label="Game status">
+  <div class="stat"><small>Score</small><strong id="score">0</strong></div>
+  <div class="stat"><small>Time left</small><strong id="time">4:00</strong></div>
+  <div class="stat"><small>Health</small><strong id="health" aria-label="3 out of 3 hearts">♥ ♥ ♥</strong></div>
+  <div class="stat"><small>Bones</small><strong id="bones">0 / 24</strong></div>
+  <div class="stat"><small>Questions</small><strong id="answered">0 / 8</strong></div>
+ </section>
+
+ <div class="stage">
+  <div id="stageLabel" class="stage-label">Cove 1 · Collect 3 bones to unlock a question</div>
+  <canvas id="game" width="1000" height="480" tabindex="0"
+   aria-label="Beach game. Use arrow keys or WASD to move the puppy, collect bone treats, and avoid crabs, jellyfish, and spiky shells."></canvas>
+ </div>
+
+ <div class="toolbar">
+  <p><b>Move:</b> ↑ ↓ ← → or WASD &nbsp; <b>Pause:</b> P</p>
+  <div id="progress" class="progress" aria-label="0 of 8 checkpoints complete"></div>
+  <button class="pill" id="pause">Pause</button>
+ </div>
+
+ <div class="touch" aria-label="Touch movement controls">
+  <button data-dir="up" aria-label="Move up">↑</button>
+  <button data-dir="left" aria-label="Move left">←</button>
+  <button data-dir="down" aria-label="Move down">↓</button>
+  <button data-dir="right" aria-label="Move right">→</button>
+ </div>
+
+ <details class="guide">
+  <summary>How to play · learning goals · save instructions</summary>
+  <p><b>Goal:</b> Guide Sunny the puppy through eight coves. Collect three bones in each cove to open its question. Bones give +10 points; a correct first answer gives +50. Read the explanation, then continue.</p>
+  <p><b>Gentle obstacles:</b> Crabs, jellyfish, and spiky shells cost one heart and 10 points. Sunny blinks briefly after a bump. With no hearts left, a lifeguard restores three hearts and returns Sunny to the current cove's start for 20 more points. Collected bones stay collected. Scores never drop below zero.</p>
+  <p><b>Time:</b> Four minutes of movement time. Questions, feedback, and pauses stop the clock. If time runs out, finish the remaining questions in learning mode. You can always complete all eight.</p>
+  <p><b>Keyboard:</b> Move with arrow keys or WASD. Press P to pause. Use Tab and Enter to operate buttons; number keys 1–4 choose an answer. The on-screen arrows also work with touch or a mouse.</p>
+  <p><b>Learning alignment — North Carolina Health Education:</b> 6.ANCOD.2: Apply refusal skills to protect self and others from alcohol, nicotine products, cannabis, and other drug use. Questions 1–2 practice refusal and getting help; 3–4 address 6.ANCOD.2.1 (personal responsibility); 5–6 address 6.ANCOD.2.2 (school and community support); 7–8 address 6.ANCOD.2.3 (how healthy and risky behaviors influence future behaviors).</p>
+  <p><b>Save and open:</b> Copy this game's entire HTML code into a plain-text editor. Save as <b>puppy-beach-quest.html</b> (choose “All files” if needed), then double-click the file to open it in a modern web browser. All graphics, styles, questions, and game logic are included; no internet connection is needed.</p>
+  <p class="muted">Classroom tip: After playing, practice saying a firm “no,” suggesting a safe activity, and identifying a trusted adult. This game does not collect or send student information.</p>
+ </details>
+ <footer>Collect treats. Practice refusal. Find support. Build healthy routines.</footer>
+</main>
+
+<dialog id="modal" aria-labelledby="modalTitle"></dialog>
+
+<script>
+'use strict';
+
+// Complete offline game: no libraries, tracking, external graphics, or network calls.
+// The puppy and dog bones follow the main theme throughout the game.
+const questions = [
+ {
+  q:'A friend offers Zola a vape and tells her, “It’s not a big deal. Everyone is trying it.” Which response best demonstrates refusal skills?',
+  o:[
+   '“No, I don’t want to vape. Let’s do something else.”',
+   '“Maybe later if more people try it.”',
+   '“I’ll hold it so no one sees you.”',
+   '“I’ll try it once if you stop asking.”'
+  ],
+  a:0, goal:'Refusal skills · 6.ANCOD.2',
+  f:[
+   'A clear “no” sets a boundary, and suggesting another activity gives a safe way to move on.',
+   '“Maybe later” leaves the decision open and allows the pressure to continue. Other people trying something does not make it safe.',
+   'Holding the vape does not clearly refuse participation and keeps Zola involved in the risky situation.',
+   'Agreeing to try it gives in to pressure. A firm refusal protects Zola’s choice.'
+  ]
+ },
+ {
+  q:'At a party, someone offers Bryson a snack containing cannabis. He refuses, but the person keeps pressuring him. What should Bryson do next?',
+  o:[
+   'Stay nearby and hope the pressure stops.',
+   'Leave the situation and contact a trusted adult.',
+   'Ask another student to try it first.',
+   'Take the snack to avoid an argument.'
+  ],
+  a:1, goal:'Refusal skills · 6.ANCOD.2',
+  f:[
+   'Remaining nearby keeps Bryson exposed to the pressure. He can leave and seek help.',
+   'Leaving reduces exposure to pressure, and a trusted adult can help Bryson get to a safe place.',
+   'Having someone else try the snack does not make it safe and exposes another person to risk.',
+   'Taking the snack to avoid an argument gives in to pressure. Bryson can leave and contact a trusted adult.'
+  ]
+ },
+ {
+  q:'What does it mean to accept responsibility for personal actions when it comes to making choices about drugs/other substances?',
+  o:[
+   'Assuming that a popular choice must be a safe choice.',
+   'Blaming friends when a choice leads to a problem.',
+   'Keeping risky decisions secret to avoid consequences.',
+   'Recognizing that personal choices have consequences and taking steps to make safer decisions.'
+  ],
+  a:3, goal:'Personal responsibility · 6.ANCOD.2.1',
+  f:[
+   'Popularity does not show that a choice is safe. Responsibility includes considering consequences.',
+   'Blaming friends avoids reflecting on personal choices. A person can acknowledge pressure and still seek help to choose more safely.',
+   'Keeping risky decisions secret can block help. Responsibility includes reaching out and making safer choices.',
+   'Considering consequences and taking steps toward safer decisions demonstrates personal responsibility. Asking for help is one of those steps.'
+  ]
+ },
+ {
+  q:'After agreeing to meet friends, AJ learns they plan to drink alcohol. Which action best shows personal responsibility?',
+  o:[
+   'Change plans, explain the decision, and arrange a safe activity.',
+   'Ask friends to keep the drinking secret.',
+   'Attend because changing plans would disappoint the group.',
+   'Go along with the plan because someone else organized it.'
+  ],
+  a:0, goal:'Personal responsibility · 6.ANCOD.2.1',
+  f:[
+   'AJ can change plans when new risks appear. Explaining the decision and choosing a safe activity puts responsibility into action.',
+   'Keeping drinking secret does not remove the risk or help AJ make a safe choice.',
+   'Avoiding disappointment is not a reason to accept a risky situation. AJ can set a boundary.',
+   'Someone else making the plan does not remove AJ’s ability to make a safer personal choice.'
+  ]
+ },
+ {
+  q:'A student is concerned about peer pressure to use nicotine. Which school resource is the most appropriate for support?',
+  o:[
+   'A school counselor or nurse who can listen and connect the student with help.',
+   'A visitor who sells products near the school.',
+   'A group chat where students share rumors.',
+   'A classmate who promises to keep every concern secret.'
+  ],
+  a:0, goal:'School support · 6.ANCOD.2.2',
+  f:[
+   'School counselors and nurses are trained to listen, support students, and connect them with appropriate help.',
+   'A person selling products is not an appropriate school support resource for handling nicotine pressure.',
+   'Rumors may be inaccurate. A school counselor or nurse can provide informed support.',
+   'A friend can be supportive, but a promise to keep every concern secret can prevent necessary help. A counselor or nurse is the best resource here.'
+  ]
+ },
+ {
+  q:'Which is an example of community support for someone that is concerned about substance use/abuse?',
+  o:[
+   'A friend who suggests handling the problem alone.',
+   'A store that sells alcohol and nicotine products.',
+   'A community health center that provides counseling and referrals',
+   'A social media account that promotes substance use'
+  ],
+  a:2, goal:'Community support · 6.ANCOD.2.2',
+  f:[
+   'Handling a concern alone can limit access to help. Community support connects people with useful services.',
+   'Selling substances is not a counseling or support service for someone concerned about substance use.',
+   'A community health center can provide counseling and referrals to services that help with substance-use concerns.',
+   'Promoting substance use can encourage risky behavior rather than connect someone with support.'
+  ]
+ },
+ {
+  q:'How can regularly choosing substance-free activities influence future behavior?',
+  o:[
+   'It guarantees that a person will never experience peer pressure.',
+   'It can build healthy routines and supportive friendships that make similar choices easier.',
+   'It removes the need to practice refusal skills.',
+   'It makes advice from trusted adults unnecessary.'
+  ],
+  a:1, goal:'Healthy behavior patterns · 6.ANCOD.2.3',
+  f:[
+   'Healthy choices can help, but no activity guarantees that peer pressure will disappear.',
+   'Repeated substance-free choices can strengthen healthy routines and supportive friendships, making similar future choices easier.',
+   'Refusal skills remain useful because pressure can still occur, even with healthy routines.',
+   'Trusted adults can still offer useful guidance and support, even when someone already makes healthy choices.'
+  ]
+ },
+ {
+  q:'Jaxen begins spending more time with a group that encourages substance use. How could this affect his future choices?',
+  o:[
+   'It guarantees the student will develop a substance use disorder.',
+   'It makes the group’s behavior safe because it happens often.',
+   'It means the student can no longer change their behavior.',
+   'It may increase opportunities and pressure to repeat risky behaviors.'
+  ],
+  a:3, goal:'Risky behavior patterns · 6.ANCOD.2.3',
+  f:[
+   'A group can influence risk, but a substance use disorder is not guaranteed. Jaxen can seek support and change his choices.',
+   'Repeated behavior does not make it safe. A group can make risky choices seem more normal.',
+   'People can change their choices and seek supportive friendships and trusted adults.',
+   'More time around a group encouraging substance use may increase exposure and pressure. Jaxen can still set boundaries and seek support.'
+  ]
+ }
+];
+
+const $ = id => document.getElementById(id);
+const canvas = $('game'), ctx = canvas.getContext('2d'), modal = $('modal');
+const W = 1000, H = 480, letters = ['A','B','C','D'];
+const keys = new Set(), touchKeys = new Set();
+
+let state = 'welcome', score = 0, time = 240, health = 3;
+let totalBones = 0, cove = 0, correct = 0, hits = 0, rescues = 0;
+let learning = false, puppy = {x:70,y:270};
+let bones = [], hazards = [], responses = [];
+let invincible = 0, toast = '', toastTime = 0, last = 0, clock = 0;
+
+const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
+
+function hud(){
+ $('score').textContent = score;
+ const sec = Math.ceil(time);
+ $('time').textContent = Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+ $('health').textContent = Array.from({length:3},(_,i)=>i<health?'♥':'♡').join(' ');
+ $('health').setAttribute('aria-label',health+' out of 3 hearts');
+ $('bones').textContent = totalBones+' / 24';
+ $('answered').textContent = responses.length+' / 8';
+ $('progress').innerHTML = questions.map((_,i)=>
+  '<span class="dot '+(i<responses.length?'done':'')+'"></span>').join('');
+ $('progress').setAttribute('aria-label',responses.length+' of 8 checkpoints complete');
+ $('stageLabel').textContent = learning
+  ? 'Learning mode · Finish your beach check-ins'
+  : `Cove ${cove+1} of 8 · Bones ${bones.filter(b=>b.got).length}/3 · Collect 3 for a question`;
+ $('pause').disabled = state!=='play';
+}
+
+// Each small cove has a safe route around every hazard. No jumping is needed.
+function setupCove(){
+ puppy = {x:70,y:270};
+ invincible = 1.7;
+ const alternate = cove%2;
+ bones = [
+  {x:235,y:alternate?310:190},
+  {x:490,y:alternate?170:320},
+  {x:795,y:alternate?295:175}
+ ].map(b=>({...b,got:false}));
+ hazards = [
+  {x:370,y:270,r:24,type:'crab'},
+  {x:665,y:215,r:24,type:'jelly'},
+  {x:865,y:365,r:24,type:'shell'}
+ ];
+}
+
+function show(html){
+ keys.clear();
+ touchKeys.clear();
+ if(modal.open) modal.close();
+ modal.innerHTML = html;
+ modal.showModal();
+ const first = modal.querySelector('button');
+ if(first) first.focus();
+ hud();
+}
+
+function close(){
+ modal.close();
+ keys.clear();
+ touchKeys.clear();
+ canvas.focus();
+}
+
+function message(t){
+ toast = t;
+ toastTime = 2.8;
+}
+
+function start(){
+ score=0; time=240; health=3; totalBones=0; cove=0; correct=0;
+ hits=0; rescues=0; learning=false; responses=[]; clock=0; toastTime=0;
+ setupCove();
+ state='play';
+ close();
+ hud();
+}
+
+function welcome(){
+ show(`
+  <div class="eyebrow">Meet Sunny, your beach buddy</div>
+  <h2 id="modalTitle">Small paws. Smart choices.</h2>
+  <p>Collect dog bones, dodge beach critters, and help Sunny practice healthy decisions through eight sunny coves.</p>
+  <ul class="rules">
+   <li><b>Move:</b> arrow keys or WASD. On-screen arrows work too.</li>
+   <li><b>Collect:</b> three bones per cove → one health question.</li>
+   <li><b>Earn:</b> +10 per bone, +50 per correct first answer.</li>
+   <li><b>Watch out:</b> crabs, jellyfish, and spiky shells cost a heart and 10 points.</li>
+   <li><b>Relax:</b> the four-minute clock pauses for all questions and explanations.</li>
+  </ul>
+  <p class="muted">If the clock ends, you can still finish every question. Use P to pause, Tab/Enter for buttons, and 1–4 for answers.</p>
+  <button class="primary" id="start">Let’s hit the beach →</button>
+ `);
+ $('start').onclick=start;
+}
+
+function ask(){
+ state='question';
+ const i=responses.length, q=questions[i];
+ show(`
+  <div class="eyebrow">Beach check-in ${i+1} / 8 · Clock paused</div>
+  <h2 id="modalTitle">${q.q}</h2>
+  <div class="muted">${q.goal}${learning?' · Learning mode':''}</div>
+  <div class="choices">
+   ${q.o.map((a,j)=>`
+    <button class="answer" data-answer="${j}">
+     <span class="letter">${letters[j]}</span><span>${a}</span>
+    </button>`).join('')}
+  </div>
+  <div id="feedback" aria-live="polite"></div>
+  <button class="primary" id="next" hidden>Continue →</button>
+ `);
+ modal.querySelectorAll('[data-answer]').forEach(b=>
+  b.onclick=()=>answer(Number(b.dataset.answer)));
+ $('next').onclick=next;
+}
+
+// Only the first response counts. Feedback explains the selected and best answers.
+function answer(j){
+ if(state!=='question') return;
+ const q=questions[responses.length], right=j===q.a;
+ responses.push(j);
+ if(right){correct++;score+=50;}
+ state='feedback';
+
+ modal.querySelectorAll('[data-answer]').forEach(b=>{
+  const n=Number(b.dataset.answer);
+  b.disabled=true;
+  if(n===q.a) b.classList.add('right');
+  else if(n===j) b.classList.add('wrong');
+  if(n===q.a) b.setAttribute('aria-label',
+   letters[n]+'. '+q.o[n]+' — correct answer');
+ });
+
+ $('feedback').className='feedback'+(right?'':' retry');
+ $('feedback').innerHTML=`
+  <b>${right?'Good choice! +50 points':'Keep learning — you can use this skill.'}</b>
+  <p>${q.f[j]}</p>
+  ${right?'':`<p><b>Best answer: ${letters[q.a]}.</b> ${q.f[q.a]}</p>`}
+ `;
+ $('next').hidden=false;
+ $('next').textContent=responses.length===8
+  ? 'See my results →'
+  : learning?'Next check-in →':'Next cove →';
+ $('next').focus();
+ hud();
+}
+
+function next(){
+ if(responses.length===8){finish();return;}
+ cove=responses.length;
+ if(learning){ask();return;}
+ setupCove();
+ state='play';
+ close();
+ message('New cove! Find three more bones.');
+ hud();
+}
+
+// Movement time can expire, but learning never ends before all 8 questions.
+function timeout(){
+ time=0;
+ learning=true;
+ state='timeout';
+ show(`
+  <div class="eyebrow">Beach exploration complete</div>
+  <h2 id="modalTitle">Time for a shady learning break!</h2>
+  <p>Your movement timer has ended. Your ${score} points are safe.
+  Finish the remaining ${8-responses.length} questions with no time limit.</p>
+  <p>Correct answers still earn 50 points. You will receive a full results screen after all eight check-ins.</p>
+  <button class="primary" id="learn">Finish the questions →</button>
+ `);
+ $('learn').onclick=ask;
+}
+
+function pause(){
+ if(state!=='play') return;
+ state='paused';
+ show(`
+  <div class="eyebrow">Clock paused</div>
+  <h2 id="modalTitle">A little shade break.</h2>
+  <p>Move with arrows or WASD. Collect three bones to unlock a question.
+  Give the critters space!</p>
+  <button class="primary" id="resume">Back to the beach →</button>
+ `);
+ $('resume').onclick=resume;
+}
+
+function resume(){
+ state='play';
+ close();
+ hud();
+}
+
+function finish(){
+ state='results';
+ const headings=[
+  'Refusal skills','Personal responsibility',
+  'School & community support','Future behavior patterns'
+ ];
+ show(`
+  <div class="eyebrow">Beach quest results</div>
+  <h2 id="modalTitle">Paws up for healthy choices!</h2>
+  <p>${learning
+   ? 'You completed the learning check-ins after exploration time ended.'
+   : 'You explored all eight coves and completed every check-in.'}</p>
+  <div class="results">
+   <div>Final score<strong>${score}</strong></div>
+   <div>Correct first answers<strong>${correct} / 8</strong></div>
+   <div>Bones collected<strong>${totalBones} / 24</strong></div>
+   <div>Time remaining<strong>${$('time').textContent}</strong></div>
+  </div>
+  <p class="muted">${hits} gentle bumps · ${rescues} lifeguard rescues.
+  Game points include collecting and movement; correct answers show your quiz result.</p>
+  <p><b>Take it with you:</b> Say no clearly. Choose a safe activity.
+  Leave pressure behind. Ask a trusted adult for support.</p>
+  <details>
+   <summary><b>Review your learning</b></summary>
+   ${headings.map((h,i)=>`
+    <p><b>${h}:</b>
+    ${[i*2,i*2+1].filter(n=>responses[n]===questions[n].a).length}/2 correct</p>
+   `).join('')}
+   ${questions.map((q,i)=>`
+    <div class="review-item">
+     <b>${i+1}. ${responses[i]===q.a?'Correct':'Review'} · ${q.goal}</b>
+     <p>${q.q}</p>
+     <p>Your answer: ${letters[responses[i]]}. ${q.o[responses[i]]}</p>
+     <p><b>Best answer: ${letters[q.a]}. ${q.o[q.a]}</b></p>
+     <p>${q.f[q.a]}</p>
+    </div>
+   `).join('')}
+  </details>
+  <div class="actions"><button class="primary" id="again">Play again →</button></div>
+ `);
+ $('again').onclick=start;
+ hud();
+}
+
+// Clear input whenever a dialog opens or the page loses focus.
+// Native dialog keeps keyboard focus inside questions and feedback.
+window.addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();
+ if(['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(k)
+    &&state==='play'){
+  e.preventDefault();
+  keys.add(k);
+ }
+ if(k==='p'&&!e.repeat){
+  if(state==='play') pause();
+  else if(state==='paused') resume();
+ }
+ if(state==='question'&&/^[1-4]$/.test(k)){
+  e.preventDefault();
+  answer(Number(k)-1);
+ }
+});
+
+window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur',()=>{
+ keys.clear();
+ touchKeys.clear();
+ if(state==='play') pause();
+});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden&&state==='play') pause();
+});
+modal.addEventListener('cancel',e=>{
+ e.preventDefault();
+ if(state==='paused') resume();
+});
+$('pause').onclick=pause;
+
+// Pointer controls support touchscreens and mouse users.
+document.querySelectorAll('[data-dir]').forEach(b=>{
+ b.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(state==='play'){
+   b.setPointerCapture(e.pointerId);
+   touchKeys.add(b.dataset.dir);
+  }
+ });
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])
+  b.addEventListener(type,()=>touchKeys.delete(b.dataset.dir));
+});
+
+function update(dt){
+ if(state!=='play') return;
+ clock+=dt;
+ time=Math.max(0,time-dt);
+ invincible=Math.max(0,invincible-dt);
+ toastTime=Math.max(0,toastTime-dt);
+ if(time<=0){timeout();return;}
+
+ let dx=
+  (keys.has('arrowright')||keys.has('d')||touchKeys.has('right')?1:0)
+  -(keys.has('arrowleft')||keys.has('a')||touchKeys.has('left')?1:0);
+ let dy=
+  (keys.has('arrowdown')||keys.has('s')||touchKeys.has('down')?1:0)
+  -(keys.has('arrowup')||keys.has('w')||touchKeys.has('up')?1:0);
+
+ // Normalize diagonal motion so it is no faster than straight movement.
+ const length=Math.hypot(dx,dy)||1;
+ puppy.x=clamp(puppy.x+dx/length*245*dt,30,W-30);
+ puppy.y=clamp(puppy.y+dy/length*245*dt,135,H-35);
+
+ hazards.forEach(h=>{
+  h.px=h.x+(h.type==='crab'?Math.sin(clock*1.3+cove)*60:0);
+  h.py=h.y+(h.type==='jelly'?Math.sin(clock*1.6+cove)*55:0);
+ });
+
+ // Gentle collision: lose health/points, then gain brief protection.
+ for(const h of hazards){
+  if(invincible<=0&&Math.hypot(puppy.x-h.px,puppy.y-h.py)<h.r+17){
+   hits++;
+   health--;
+   score=Math.max(0,score-10);
+   invincible=2;
+   message('Oops, a gentle bump! −1 heart, −10 points');
+   if(health<=0){
+    rescues++;
+    health=3;
+    score=Math.max(0,score-20);
+    puppy={x:70,y:270};
+    invincible=3;
+    message('Lifeguard rescue! Hearts restored. −20 more points');
+   }else{
+    puppy.x=clamp(puppy.x-28,30,W-30);
+   }
+   break;
+  }
+ }
+
+ // Three collected treats unlock exactly one question for this cove.
+ for(const b of bones){
+  if(!b.got&&Math.hypot(puppy.x-b.x,puppy.y-b.y)<36){
+   b.got=true;
+   totalBones++;
+   score+=10;
+   message('+10 points · Nice find!');
+   if(bones.every(v=>v.got)){ask();return;}
+  }
+ }
+ hud();
+}
+
+// All scenery is drawn directly with Canvas shapes.
+function ellipse(x,y,rx,ry,color){
+ ctx.fillStyle=color;
+ ctx.beginPath();
+ ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);
+ ctx.fill();
+}
+
+function line(points,color,width=3){
+ ctx.strokeStyle=color;
+ ctx.lineWidth=width;
+ ctx.lineCap='round';
+ ctx.beginPath();
+ points.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));
+ ctx.stroke();
+}
+
+function bone(x,y){
+ ctx.save();
+ ctx.translate(x,y);
+ ctx.rotate(-.35);
+ ctx.strokeStyle='#bd8549';
+ ctx.lineWidth=3;
+ ctx.fillStyle='#fff8dd';
+ ctx.beginPath();
+ ctx.moveTo(-13,-6);
+ ctx.bezierCurveTo(-26,-20,-33,-2,-21,1);
+ ctx.bezierCurveTo(-31,14,-16,21,-11,8);
+ ctx.lineTo(11,8);
+ ctx.bezierCurveTo(16,21,31,14,21,1);
+ ctx.bezierCurveTo(33,-2,26,-20,13,-6);
+ ctx.closePath();
+ ctx.fill();
+ ctx.stroke();
+ ctx.restore();
+}
+
+function palm(x,y,s){
+ ctx.save();
+ ctx.translate(x,y);
+ ctx.scale(s,s);
+ line([[0,0],[-12,-55],[-4,-114]],'#ad784a',15);
+ for(let i=0;i<5;i++){
+  ctx.save();
+  ctx.translate(-4,-114);
+  ctx.rotate((i-2)*.63);
+  ctx.fillStyle=i%2?'#168d79':'#269e78';
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.quadraticCurveTo(-60,-42,-85,8);
+  ctx.quadraticCurveTo(-40,-10,0,0);
+  ctx.fill();
+  ctx.restore();
+ }
+ ctx.restore();
+}
+
+function puppyArt(){
+ const {x,y}=puppy;
+ if(invincible>0&&Math.floor(clock*9)%2) return;
+ ctx.save();
+ ctx.translate(x,y);
+ ellipse(0,18,29,8,'#c4a26a55');
+ line([[-17,4],[-33,-9],[-36,-18]],'#aa6938',9);
+ ellipse(-2,2,25,17,'#d9954f');
+ ellipse(-14,16,7,9,'#f6bd76');
+ ellipse(14,16,7,9,'#f6bd76');
+ ellipse(13,-15,22,23,'#efb46a');
+ ellipse(-5,-19,8,18,'#9d6239');
+ ellipse(30,-19,8,17,'#9d6239');
+ ellipse(16,-5,14,11,'#ffe4b6');
+ ellipse(7,-19,3,4,'#253e43');
+ ellipse(23,-19,3,4,'#253e43');
+ ellipse(16,-9,5,4,'#253e43');
+ line([[12,-1],[16,2],[20,-1]],'#75472c',2);
+ line([[-2,2],[26,2]],'#0e918e',5);
+ ellipse(12,5,4,4,'#ffcf55');
+ ctx.restore();
+}
+
+function crab(h){
+ const x=h.px??h.x,y=h.py??h.y;
+ ellipse(x,y+15,29,6,'#c2a67455');
+ for(const s of [-1,1]){
+  line([[x+s*13,y+4],[x+s*28,y+12],[x+s*34,y+7]],'#c9653e',4);
+  line([[x+s*15,y],[x+s*30,y-14]],'#dc7548',5);
+  ellipse(x+s*32,y-18,9,10,'#f38a56');
+ }
+ ellipse(x,y,23,15,'#f29462');
+ for(const s of [-1,1]){
+  line([[x+s*9,y-9],[x+s*9,y-21]],'#d57748',4);
+  ellipse(x+s*9,y-22,5,6,'white');
+  ellipse(x+s*9,y-22,2,3,'#294e52');
+ }
+ line([[x-5,y+4],[x,y+7],[x+5,y+4]],'#9f4a2c',2);
+}
+
+function jelly(h){
+ const x=h.px??h.x,y=h.py??h.y;
+ ellipse(x,y+29,24,5,'#8184b52a');
+ for(let i=-1;i<=1;i++)
+  line([[x+i*13,y+8],[x+i*14+4,y+20],[x+i*13,y+30]],'#9a78b8',4);
+ ctx.fillStyle='#c4a4e3';
+ ctx.beginPath();
+ ctx.arc(x,y,24,Math.PI,0);
+ ctx.quadraticCurveTo(x+27,y+15,x,y+10);
+ ctx.quadraticCurveTo(x-27,y+15,x-24,y);
+ ctx.fill();
+ ellipse(x-8,y-2,2.5,3,'#463c66');
+ ellipse(x+8,y-2,2.5,3,'#463c66');
+ line([[x-4,y+4],[x,y+6],[x+4,y+4]],'#70598c',2);
+}
+
+function shell(h){
+ const x=h.x,y=h.y;
+ ctx.fillStyle='#e99b87';
+ ctx.beginPath();
+ for(let i=0;i<20;i++){
+  const a=i*Math.PI/10,r=i%2?15:27;
+  const px=x+Math.cos(a)*r,py=y+Math.sin(a)*r;
+  i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+ }
+ ctx.closePath();
+ ctx.fill();
+ ellipse(x,y,14,13,'#ffd2a9');
+ ellipse(x-4,y-2,2,2,'#785954');
+ ellipse(x+4,y-2,2,2,'#785954');
+}
+
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#b8e9ed';
+ ctx.fillRect(0,0,W,H);
+ ellipse(850,50,37,37,'#fff4b0');
+ ctx.fillStyle='#48bdc7';
+ ctx.fillRect(0,76,W,110);
+
+ for(let j=0;j<3;j++){
+  ctx.strokeStyle=j===2?'#e9fff2':'#a9e6df';
+  ctx.lineWidth=j===2?8:3;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=10){
+   const y=100+j*30+Math.sin(x/65+clock*.5+j)*6;
+   x?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.stroke();
+ }
+
+ ctx.fillStyle='#f7dba4';
+ ctx.beginPath();
+ ctx.moveTo(0,155);
+ ctx.bezierCurveTo(260,190,560,130,1000,170);
+ ctx.lineTo(W,H);
+ ctx.lineTo(0,H);
+ ctx.closePath();
+ ctx.fill();
+
+ ctx.fillStyle='#efd09a';
+ for(let i=0;i<48;i++){
+  const x=(i*137+31)%W,y=196+(i*73)%270;
+  ctx.fillRect(x,y,3,2);
+ }
+
+ palm(45,146,.72);
+ palm(956,163,.9);
+ ellipse(951,440,90,18,'#eac78e');
+
+ // Beach umbrella.
+ ctx.fillStyle='#f38c67';
+ ctx.beginPath();
+ ctx.moveTo(914,412);
+ ctx.lineTo(970,374);
+ ctx.lineTo(998,417);
+ ctx.closePath();
+ ctx.fill();
+ line([[966,403],[965,454]],'#aa7849',4);
+
+ // Friendly lifeguard hut in the scenery.
+ ctx.fillStyle='#fffbdf';
+ ctx.fillRect(90,83,50,37);
+ ctx.fillStyle='#ec8968';
+ ctx.beginPath();
+ ctx.moveTo(82,85);
+ ctx.lineTo(115,64);
+ ctx.lineTo(148,85);
+ ctx.closePath();
+ ctx.fill();
+ line([[108,95],[122,95]],'#ec8968',5);
+ line([[115,88],[115,102]],'#ec8968',5);
+
+ for(const b of bones){
+  if(!b.got){
+   ellipse(b.x,b.y+14,28,7,'#d2ac6e44');
+   ellipse(b.x,b.y,32,32,'#fff9d75c');
+   bone(b.x,b.y+Math.sin(clock*3+b.x)*3);
+  }
+ }
+
+ hazards.forEach(h=>
+  h.type==='crab'?crab(h):h.type==='jelly'?jelly(h):shell(h));
+ puppyArt();
+
+ if(toastTime>0){
+  ctx.font='bold 17px system-ui';
+  const tw=ctx.measureText(toast).width;
+  ctx.fillStyle='#153e48ec';
+  ctx.beginPath();
+  ctx.roundRect((W-tw)/2-18,H-46,tw+36,34,12);
+  ctx.fill();
+  ctx.fillStyle='#fffdf1';
+  ctx.textAlign='center';
+  ctx.fillText(toast,W/2,H-24);
+  ctx.textAlign='left';
+ }
+}
+
+// One animation loop; pausing prevents simulation and countdown updates.
+function frame(now){
+ const dt=Math.min((now-last)/1000||0,.04);
+ last=now;
+ update(dt);
+ draw();
+ requestAnimationFrame(frame);
+}
+
+setupCove();
+hud();
+welcome();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
